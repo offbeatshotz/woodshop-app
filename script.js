@@ -100,11 +100,46 @@ document.addEventListener('DOMContentLoaded', () => {
   const imageUpload = document.getElementById('image-upload');
   const imagePreview = document.getElementById('image-preview');
   const predictionResult = document.getElementById('prediction-result');
+  const startCameraButton = document.getElementById('start-camera-button');
+  const snapPhotoButton = document.getElementById('snap-photo-button');
+  const cameraFeed = document.getElementById('camera-feed');
   let model;
 
   mobilenet.load().then(m => {
     model = m;
     predictionResult.textContent = 'Model loaded!';
+  });
+
+  startCameraButton.addEventListener('click', async () => {
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+        cameraFeed.srcObject = stream;
+        cameraFeed.style.display = 'block';
+        snapPhotoButton.style.display = 'block';
+      } catch (error) {
+        console.error('Error accessing camera:', error);
+        predictionResult.textContent = 'Could not access camera. Please check permissions.';
+      }
+    }
+  });
+
+  snapPhotoButton.addEventListener('click', () => {
+    const canvas = document.createElement('canvas');
+    canvas.width = cameraFeed.videoWidth;
+    canvas.height = cameraFeed.videoHeight;
+    canvas.getContext('2d').drawImage(cameraFeed, 0, 0);
+    imagePreview.src = canvas.toDataURL('image/png');
+    imagePreview.style.display = 'block';
+    cameraFeed.style.display = 'none';
+    snapPhotoButton.style.display = 'none';
+    if (cameraFeed.srcObject) {
+      cameraFeed.srcObject.getTracks().forEach(track => track.stop());
+    }
+    predictionResult.textContent = 'Classifying...';
+    model.classify(imagePreview).then(predictions => {
+      displayPredictions(predictions);
+    });
   });
 
   imageUpload.addEventListener('change', e => {
@@ -116,15 +151,23 @@ document.addEventListener('DOMContentLoaded', () => {
         imagePreview.style.display = 'block';
         predictionResult.textContent = 'Classifying...';
         model.classify(imagePreview).then(predictions => {
-          predictionResult.innerHTML = '';
-          predictions.forEach(p => {
-            const p_tag = document.createElement('p');
-            p_tag.textContent = `${p.className} - ${Math.round(p.probability * 100)}%`;
-            predictionResult.appendChild(p_tag);
-          });
+          displayPredictions(predictions);
         });
       };
       reader.readAsDataURL(file);
     }
   });
+
+  function displayPredictions(predictions) {
+    predictionResult.innerHTML = '';
+    if (!predictions || predictions.length === 0) {
+      predictionResult.textContent = 'Could not identify the wood.';
+      return;
+    }
+    predictions.forEach(p => {
+      const p_tag = document.createElement('p');
+      p_tag.textContent = `${p.className} - ${Math.round(p.probability * 100)}%`;
+      predictionResult.appendChild(p_tag);
+    });
+  }
 });

@@ -31,7 +31,13 @@
 
   <div id="identifier-section" style="display: none;">
     <h1>Wood Identifier</h1>
-    <input type="file" id="image-upload" accept="image/*">
+    <div class="identifier-controls">
+      <button id="start-camera-button">Start Camera</button>
+      <input type="file" id="image-upload" accept="image/*" style="display: none;">
+      <label for="image-upload" class="file-upload-label">Upload Image</label>
+    </div>
+    <video id="camera-feed" width="300" height="300" autoplay playsinline style="display: none;"></video>
+    <button id="snap-photo-button" style="display: none;">Snap Photo</button>
     <img id="image-preview" src="" alt="Image Preview" style="display: none; max-width: 300px; margin-top: 10px;">
     <div id="prediction-result"></div>
   </div>
